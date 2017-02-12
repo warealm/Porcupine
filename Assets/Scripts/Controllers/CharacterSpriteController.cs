@@ -18,7 +18,11 @@ public class CharacterSpriteController : MonoBehaviour {
         //register our callback
         world.RegisterCharacterCreated(OnCharacterCreated);
 
-        Character c = world.CreateCharacter(world.GetTileAt(world.Width / 2, world.Height / 2));
+        //Check for preexisting characters
+        foreach(Character c in world.characters)
+        {
+            OnCharacterCreated(c);
+        }
 
         //c.SetDestination(world.GetTileAt(world.Width / 2 + 5, world.Height / 2));
 
@@ -57,7 +61,7 @@ public class CharacterSpriteController : MonoBehaviour {
         //Make sure the furnitures graphics are correct
         if (characterGameObjectMap.ContainsKey(character) == false)
         {
-            Debug.LogError("OnFurnitureChanged -- Trying to change visuals for chac not in our map");
+            Debug.LogError("OnFurnitureChanged -- Trying to change visuals for char not in our map");
             return;
         }
         GameObject char_go = characterGameObjectMap[character];

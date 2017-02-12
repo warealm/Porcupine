@@ -25,14 +25,40 @@ public class JobSpriteController : MonoBehaviour
 
     void OnJobCreated( Job job)
     {
+
+
+        //add our tile/gameobject pair to the dictionary.
+        if (jobGameObjectMap.ContainsKey(job))
+        {
+            Debug.LogError("OnJobCreated -- for a jobGO that already exists, mostliekly a job being requeued");
+            return;
+        }
         //We can only do furniture-building jobs
         GameObject job_go = new GameObject();
-        //add our tile/gameobject pair to the dictionary.
+
         jobGameObjectMap.Add(job, job_go);
+
+
         //group the objects in the worldcontroller
         job_go.transform.SetParent(this.transform, true);
         job_go.name = "JOB_" + job.jobObjectType + "_" + job.tile.X + "_" + job.tile.Y;
         job_go.transform.position = new Vector3(job.tile.X, job.tile.Y, 0);
+
+
+        //This hardcoding is not ideal
+        if (job.jobObjectType == "Door")
+        {
+            //By default the door graphic is meant for walls to the east and west
+            //check to see if we actually have a wall north/south, and it so then rotate this GO by 90 degrees
+            Tile northTile = job.tile.world.GetTileAt(job.tile.X, job.tile.Y + 1);
+            Tile southTile = job.tile.world.GetTileAt(job.tile.X, job.tile.Y - 1);
+
+            if (northTile != null && southTile != null && northTile.furniture != null && southTile.furniture != null && northTile.furniture.objectType == "Wall" && southTile.furniture.objectType == "Wall")
+            {
+                job_go.transform.rotation = Quaternion.Euler(0, 0, 90);
+            }
+
+        }
 
         //add a sprite renderer, but don't bother setting a sprite because all the tiles are empty atm
         SpriteRenderer sr = job_go.AddComponent<SpriteRenderer>();

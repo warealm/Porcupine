@@ -18,7 +18,7 @@ public class Job {
     Action<Job> cbJobComplete;          //Action for a job has been completed
     Action<Job> cbJobCancel;            //ACtion when a job get's cancelled
 
-    public Job(Tile _tile, string _jobObjectType, Action<Job> _cbJobComplete, float _jobTime = 1f)
+    public Job(Tile _tile, string _jobObjectType, Action<Job> _cbJobComplete, float _jobTime = 0.1f)
     {
         tile = _tile;
         jobObjectType = _jobObjectType;

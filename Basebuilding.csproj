@@ -85,6 +85,7 @@
     <Compile Include="Assets\Scripts\Controllers\WorldController.cs" />
     <Compile Include="Assets\Scripts\Models\Character.cs" />
     <Compile Include="Assets\Scripts\Models\Furniture.cs" />
+    <Compile Include="Assets\Scripts\Models\FurnitureActions.cs" />
     <Compile Include="Assets\Scripts\Models\Inventory.cs" />
     <Compile Include="Assets\Scripts\Models\Job.cs" />
     <Compile Include="Assets\Scripts\Models\JobQueue.cs" />

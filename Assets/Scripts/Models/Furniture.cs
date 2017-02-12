@@ -2,12 +2,31 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
 //Installed objects are things like walls, doors and furniture (eg, a sofa)
 
-public class Furniture
+public class Furniture : IXmlSerializable
 {
+
+    public Dictionary<string, float> furnParameters;
+    public Action<Furniture, float> updateActions;
+
+    //This func has no parameters but enters an Enterability enum
+    public Func<Furniture, Enterability> IsEnterable;
+
+    public void Update(float deltaTime)
+    {
+        if (updateActions != null)
+        {
+            updateActions(this, deltaTime);
+        }
+    } 
+
+
+
     //This represents the base tile of the object, in practice large objects may occupy 
     //multiple tiles.
     public Tile tile{get; protected set;}          
@@ -29,31 +48,56 @@ public class Furniture
 
     public bool linksToNeighbour { get; protected set; }
 
-    Action<Furniture> cbOnChanged;
+    public Action<Furniture> cbOnChanged;
     Func<Tile, bool> funcPositionValidation; //last thing in a func is what is returned
 
     //TODO Implement larger objects
     //TODO Implement object rotation
 
-    protected Furniture()
+    public Furniture()
     {
+        //Empty constructor used for serialization
+        furnParameters = new Dictionary<string, float>();
+    }
 
+    //Copy constructor
+    protected Furniture(Furniture other)
+    {
+        objectType = other.objectType;
+        movementCost = other.movementCost;
+        width = other.width;
+        height = other.height;
+        linksToNeighbour = other.linksToNeighbour;
+
+        furnParameters = new Dictionary<string, float>(other.furnParameters);
+
+        if (other.updateActions != null)
+        {
+            updateActions = (Action<Furniture, float>)other.updateActions.Clone();
+        }
+
+        IsEnterable = other.IsEnterable;
+        
+    }
+
+    virtual public Furniture Clone()
+    {
+        return new Furniture(this);
     }
 
     //This is used by our object factory to create the prototypical object
     //Note that it doesn't ask for a tile
-    //static because we don't always want to create an instance of the class to create a prototype
-    static public Furniture CreatePrototype(string _objectType, float _movementCost =1f, int _width=1, int _height=1,bool _linksToNeighbour = false)
+    //Create furniture from aprameters -- this will probably only be used for prototypes
+    public Furniture (string _objectType, float _movementCost =1f, int _width=1, int _height=1,bool _linksToNeighbour = false)
     {
-        Furniture obj = new Furniture();
-        obj.objectType = _objectType;
-        obj.movementCost = _movementCost;
-        obj.width = _width;
-        obj.height = _height;
-        obj.linksToNeighbour = _linksToNeighbour;
+        objectType = _objectType;
+        movementCost = _movementCost;
+        width = _width;
+        height = _height;
+        linksToNeighbour = _linksToNeighbour;
+        funcPositionValidation = _IsValidPosition;
 
-        obj.funcPositionValidation = obj._IsValidPosition;
-        return obj;
+        furnParameters = new Dictionary<string, float>();
     }
 
     //We can install the object proto on tile
@@ -66,13 +110,10 @@ public class Furniture
         }
 
         //we know our placement destination is valid
-        Furniture obj = new Furniture();
-        obj.objectType = proto.objectType;
-        obj.movementCost =proto.movementCost;
-        obj.width = proto.width;
-        obj.height = proto.height;
+        //copy constructor
+        Furniture obj = proto.Clone(); ;
         obj.tile = tile;
-        obj.linksToNeighbour = proto.linksToNeighbour;
+
 
         //This assumes we are 1x1;
         if (tile.PlaceFurniture(obj) == false)
@@ -94,24 +135,24 @@ public class Furniture
             int y = tile.Y;
 
             t = tile.world.GetTileAt(x,y+1);
-            if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 //we have a northern neighbour, with the same object type as us, so tell it
                 //that it has changed by firing its callback
                 t.furniture.cbOnChanged(t.furniture); 
             }
             t = tile.world.GetTileAt(x + 1, y);
-            if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 t.furniture.cbOnChanged(t.furniture);
             }
             t = tile.world.GetTileAt(x, y - 1);
-            if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 t.furniture.cbOnChanged(t.furniture);
             }
             t = tile.world.GetTileAt(x - 1, y);
-            if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 t.furniture.cbOnChanged(t.furniture);
             }
@@ -165,5 +206,57 @@ public class Furniture
 
         return true;
     }
+
+
+
+
+    #region Saving and Loading
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        writer.WriteAttributeString("X", tile.X.ToString());
+        writer.WriteAttributeString("Y", tile.Y.ToString());
+        writer.WriteAttributeString("objectType", objectType );
+        //writer.WriteAttributeString("movementCost", movementCost.ToString());
+
+        foreach(string k in furnParameters.Keys)
+        {
+            writer.WriteStartElement("Param");
+            writer.WriteAttributeString("name", k);
+            writer.WriteAttributeString("value", furnParameters[k].ToString());
+
+
+            writer.WriteEndElement();
+        }
+
+
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        //X, Y and objecttype have already been set and we should ahve already been assigned to a tile
+        //just read extra data      
+        //movementCost = int.Parse( reader.GetAttribute("movementCost") );
+
+        //we are in the furniture element, so read elements until we run out of furniture elements
+        if (reader.ReadToDescendant("Param"))
+        {
+            do
+            {
+                string key = reader.GetAttribute("name");
+                float value = float.Parse(reader.GetAttribute("value"));
+                furnParameters[key] = value;
+            } while (reader.ReadToNextSibling("Param"));
+        }
+
+
+    }
+
+
+    #endregion
 
 }

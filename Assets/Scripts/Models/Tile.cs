@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
 //Tiles can either be empty or have a floor
 public enum TileType { Empty, Floor };
+public enum Enterability { Yes, Never, Soon};
 
-public class Tile {
+public class Tile : IXmlSerializable {
 
 
     //Default to an empty tile type
@@ -50,6 +54,8 @@ public class Tile {
     public int X{ get{return x;} }
     public int Y{ get{return y;} }
 
+    float baseTileMovementCost = 1; 
+
     public float movementCost
     {
         get
@@ -61,10 +67,10 @@ public class Tile {
 
             if (furniture == null)
             {
-                return 1;
+                return baseTileMovementCost;
             }
 
-            return 1 * furniture.movementCost;
+            return baseTileMovementCost * furniture.movementCost;
 
         }
     }
@@ -147,13 +153,15 @@ public class Tile {
         return false;
     }
 
-    public Tile[] getNeighbours(bool diagokay = false)
+    //Gets the neighbours
+
+    public Tile[] GetNeighbours(bool diagokay = false)
     {
 
         Tile[] ns;
 
 
-        if(diagokay == false)
+        if (diagokay == false)
         {
             ns = new Tile[4];       //Tile order is NESW
         }
@@ -165,14 +173,14 @@ public class Tile {
         Tile n;
         n = world.GetTileAt(X, Y + 1);
         ns[0] = n;
-        n = world.GetTileAt(X+1, Y);
+        n = world.GetTileAt(X + 1, Y);
         ns[1] = n;
         n = world.GetTileAt(X, Y - 1);
         ns[2] = n;
-        n = world.GetTileAt(X-1, Y);
+        n = world.GetTileAt(X - 1, Y);
         ns[3] = n;
 
-        if(diagokay == true)
+        if (diagokay == true)
         {
             n = world.GetTileAt(X + 1, Y + 1);
             ns[4] = n;
@@ -186,11 +194,50 @@ public class Tile {
 
         return ns;
 
+
+    }
+
+    public Enterability IsEnterable()
+    {
+        //this returns true if you can enter this tile right at this moment
+
+        if(movementCost == 0)
+        {
+            return Enterability.Never;
+        }
+
+        //check out furniture to see if it has a special block on enterability
+        if(furniture!=null && furniture.IsEnterable != null)
+        {
+            return furniture.IsEnterable(furniture);
+        }
+
+        //otherwise assume it is enterable
+        return Enterability.Yes;
     }
 
 
 
+    #region Saving and Loading
 
 
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
 
+    public void WriteXml(XmlWriter writer)
+    {
+        writer.WriteAttributeString("X", X.ToString());
+        writer.WriteAttributeString("Y", Y.ToString());
+        writer.WriteAttributeString("Type", ((int)Type).ToString());
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        Type = (TileType)int.Parse(reader.GetAttribute("Type"));
+    }
+
+
+    #endregion
 }

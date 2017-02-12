@@ -2,17 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
-public class World {
+public class World : IXmlSerializable {
 
     //A world will have a two dimensional array of tiles
     Tile[,] tiles;
 
     //A list of characters
-    List<Character> characters;
+    public List<Character> characters;
+    public List<Furniture> furnitures;
 
     //The pathfindinggraph used to navigate our world map
-    Path_Tilegraph tileGraph;
+    public Path_Tilegraph tileGraph;
 
     //This is a dictionary which maps a string (like wall) to an installedobject prototype
     public Dictionary<string, Furniture> furniturePrototypes;
@@ -34,7 +38,18 @@ public class World {
     public JobQueue jobQueue;
 
     //Accessor for the class, will ask for a width and height, if not provided it will default to 100x100
-    public World(int _width = 100, int _height = 100)
+    public World(int _width, int _height)
+    {
+        //Creates an empty world
+        SetupWorld(_width, _height);
+
+        //make one character
+        Character c = CreateCharacter(GetTileAt(Width / 2, Height / 2));
+
+
+    }
+
+    void SetupWorld(int _width, int _height)
     {
         jobQueue = new JobQueue();
 
@@ -52,12 +67,11 @@ public class World {
             }
         }
 
-        Debug.Log("world created with " + _width*_height + " Tiles");
+        Debug.Log("world created with " + _width * _height + " Tiles");
         CreateFurniturePrototypes();
 
         characters = new List<Character>();
-
-
+        furnitures = new List<Furniture>();
     }
 
     public void Update(float deltaTime)
@@ -66,13 +80,19 @@ public class World {
         {
             c.Update(deltaTime);
         }
+
+        foreach(Furniture f in furnitures)
+        {
+            f.Update(deltaTime);
+        }
+
     }
 
     public Character CreateCharacter(Tile t)
     {
         Character c = new Character(t);
         characters.Add(c);
-        if (c != null)
+        if (cbCharacterCreated != null)
         {
             cbCharacterCreated(c);
         }
@@ -81,11 +101,18 @@ public class World {
 
     }
 
-    //Initialise our dictionary, for now add Wall and the prototype of wall to the dictionary
+    //Initialise our dictionary, and add the prototypes to the dictionary
     void CreateFurniturePrototypes()
     {
         furniturePrototypes = new Dictionary<string, Furniture>();
-        furniturePrototypes.Add("Wall", Furniture.CreatePrototype("Wall", 0, 1, 1, true));
+        furniturePrototypes.Add("Wall", new Furniture("Wall", 0, 1, 1, true));
+        furniturePrototypes.Add("Door", new Furniture("Door", 1, 1, 1, false));
+
+        furniturePrototypes["Door"].furnParameters["openness"] = 0;
+        furniturePrototypes["Door"].furnParameters["is_opening"] = 0;
+        furniturePrototypes["Door"].updateActions += FurnitureActions.Door_UpdateAction;
+        furniturePrototypes["Door"].IsEnterable = FurnitureActions.Door_IsEnterable;    //+=?
+
     }
 
     //Go through the tiles array and change the type of each tile to something random
@@ -113,16 +140,16 @@ public class World {
     public Tile GetTileAt(int x, int y)
     {
         //first check whether the coordinate is actually valid, if not then return
-        if (x > Width || x < 0 || y > Height || y < 0)
+        if (x >= Width || x < 0 || y >= Height || y < 0)
         {
-            Debug.LogError("Tile " + x +","+ y + " is out of range");
+            //Debug.LogError("Tile " + x +","+ y + " is out of range");
             return null;
         }
         return tiles[x,y];
     }
 
     //Function that places an installed object at the tile requested
-    public void PlaceFurniture(string objectType, Tile t)
+    public Furniture PlaceFurniture(string objectType, Tile t)
     {
         
         //ATM this assumes 1x1 tiles
@@ -131,24 +158,28 @@ public class World {
         if (furniturePrototypes.ContainsKey(objectType) == false)
         {
             Debug.LogError("installedobjectprototype doesn't contain proto for key " + objectType);
-            return;
+            return null;
         }
 
         //Create an installedObject and place the instance of that object at tile t
-        Furniture obj = Furniture.PlaceInstance(furniturePrototypes[objectType], t);
+        Furniture furn = Furniture.PlaceInstance(furniturePrototypes[objectType], t);
 
-        if (obj == null)
+        if (furn == null)
         {
             //failed to place object, most likely there was already something there
-            return;
+            return null;
         }
+
+        furnitures.Add(furn);
 
         //Let everyone know that a furniture has been created, so that other functions subscribed to it can run
         if (cbFurnitureCreated != null)
         {
-            cbFurnitureCreated(obj);
+            cbFurnitureCreated(furn);
             InvalidateTileGraph();
         }
+
+        return furn;
 
     }
 
@@ -242,5 +273,140 @@ public class World {
 
 
     }
+
+
+
+
+    #region Saving and Loading
+
+    public World()
+    {
+
+    }
+
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        //Save info here
+        writer.WriteAttributeString("Width", Width.ToString());
+        writer.WriteAttributeString("Height", Height.ToString());
+
+        writer.WriteStartElement("Tiles");
+        for (int x = 0; x < Width; x++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                if(tiles[x,y].Type != TileType.Empty)
+                {
+                    writer.WriteStartElement("Tile");
+                    tiles[x, y].WriteXml(writer);
+                    writer.WriteEndElement();
+                }           
+            }
+        }
+        writer.WriteEndElement();
+
+        writer.WriteStartElement("Furnitures");
+        foreach(Furniture furn in furnitures)
+        {
+            writer.WriteStartElement("Furniture");
+            furn.WriteXml(writer);
+            writer.WriteEndElement();
+        }
+        
+        writer.WriteEndElement();
+
+        writer.WriteStartElement("Characters");
+        foreach (Character c in characters)
+        {
+            writer.WriteStartElement("Character");
+            c.WriteXml(writer);
+            writer.WriteEndElement();
+        }
+
+        writer.WriteEndElement();
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        //Load info here
+        Debug.Log("World::ReadXML");
+
+        width = int.Parse(reader.GetAttribute("Width"));
+        height = int.Parse(reader.GetAttribute("Height"));
+
+        SetupWorld(width, height);
+
+        while (reader.Read())
+        {
+            switch (reader.Name)
+            {
+                case "Tiles":
+                    ReadXml_Tiles(reader);
+                    break;
+                case "Furnitures":
+                    ReadXml_Furnitures(reader);
+                    break;
+                case "Characters":
+                    ReadXml_Characters(reader);
+                    break;
+            }
+        }
+
+
+    }
+
+    void ReadXml_Tiles(XmlReader reader)
+    {
+        //we are in the tiles element, so read elements until we run out of tile elements
+
+        if (reader.ReadToDescendant("Tile"))
+        {
+            do
+            {
+                //we have at least one tile, so do something with it
+                int x = int.Parse(reader.GetAttribute("X"));
+                int y = int.Parse(reader.GetAttribute("Y"));
+                tiles[x, y].ReadXml(reader);
+            } while (reader.ReadToNextSibling("Tile"));     
+        }
+    }
+
+    void ReadXml_Furnitures(XmlReader reader)
+    {
+        //we are in the furnitures element, so read elements until we run out of furnitures elements
+        if (reader.ReadToDescendant("Furniture"))
+        {
+            do
+            {
+                //we have at least one tile, so do something with it
+                int x = int.Parse(reader.GetAttribute("X"));
+                int y = int.Parse(reader.GetAttribute("Y"));
+                Furniture furn = PlaceFurniture(reader.GetAttribute("objectType"), tiles[x, y]);
+                furn.ReadXml(reader);
+            } while (reader.ReadToNextSibling("Furniture"));
+        }
+    }
+
+    void ReadXml_Characters(XmlReader reader)
+    {
+        //we are in the character element, so read elements until we run out of character elements
+        if (reader.ReadToDescendant("Character"))
+        {
+            do
+            {
+                //we have at least one tile, so do something with it
+                int x = int.Parse(reader.GetAttribute("X"));
+                int y = int.Parse(reader.GetAttribute("Y"));
+                Character c = CreateCharacter(tiles[x, y]);
+                c.ReadXml(reader);
+            } while (reader.ReadToNextSibling("Character"));
+        }
+    }
+    #endregion
 
 }
