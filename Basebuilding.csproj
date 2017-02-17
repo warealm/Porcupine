@@ -89,6 +89,7 @@
     <Compile Include="Assets\Scripts\Models\Inventory.cs" />
     <Compile Include="Assets\Scripts\Models\Job.cs" />
     <Compile Include="Assets\Scripts\Models\JobQueue.cs" />
+    <Compile Include="Assets\Scripts\Models\Room.cs" />
     <Compile Include="Assets\Scripts\Models\Tile.cs" />
     <Compile Include="Assets\Scripts\Models\World.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\Path_AStar.cs" />

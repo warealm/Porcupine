@@ -21,6 +21,9 @@ public class Tile : IXmlSerializable {
 
     //tile either either have a looseobject or an installed object on top of the base tile type
     private Inventory inventory;
+
+    public Room room;
+
     public Furniture furniture { get; protected set; }
 
     public Job pendingFurnitureJob;
@@ -214,6 +217,24 @@ public class Tile : IXmlSerializable {
 
         //otherwise assume it is enterable
         return Enterability.Yes;
+    }
+
+
+    public Tile North()
+    {
+        return world.GetTileAt(X, Y + 1);
+    }
+    public Tile South()
+    {
+        return world.GetTileAt(X, Y - 1);
+    }
+    public Tile East()
+    {
+        return world.GetTileAt(X + 1, Y);
+    }
+    public Tile West()
+    {
+        return world.GetTileAt(X - 1, Y);
     }
 
 

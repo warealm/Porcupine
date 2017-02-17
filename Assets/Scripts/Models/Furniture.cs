@@ -42,6 +42,9 @@ public class Furniture : IXmlSerializable
     //Special: If cost is 0, then the tile is impassible (like a wall).
     public float movementCost { get; protected set; }
 
+    //Whether or not placing this object could enclose rooms
+    public bool roomEnclosure { get; protected set; }
+
     //For example, a sofa might be 3x2, may only appear to cover 3x1, but extra for legroom.
     int width;
     int height;
@@ -65,6 +68,7 @@ public class Furniture : IXmlSerializable
     {
         objectType = other.objectType;
         movementCost = other.movementCost;
+        roomEnclosure = other.roomEnclosure;
         width = other.width;
         height = other.height;
         linksToNeighbour = other.linksToNeighbour;
@@ -88,10 +92,11 @@ public class Furniture : IXmlSerializable
     //This is used by our object factory to create the prototypical object
     //Note that it doesn't ask for a tile
     //Create furniture from aprameters -- this will probably only be used for prototypes
-    public Furniture (string _objectType, float _movementCost =1f, int _width=1, int _height=1,bool _linksToNeighbour = false)
+    public Furniture (string _objectType, float _movementCost =1f, int _width=1, int _height=1,bool _linksToNeighbour = false, bool _roomEnclosure = false)
     {
         objectType = _objectType;
         movementCost = _movementCost;
+        roomEnclosure = _roomEnclosure;
         width = _width;
         height = _height;
         linksToNeighbour = _linksToNeighbour;

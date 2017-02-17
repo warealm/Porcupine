@@ -11,6 +11,9 @@ public class World : IXmlSerializable {
     //A world will have a two dimensional array of tiles
     Tile[,] tiles;
 
+    //A list of rooms in our world
+    List<Room> rooms;
+
     //A list of characters
     public List<Character> characters;
     public List<Furniture> furnitures;
@@ -49,6 +52,33 @@ public class World : IXmlSerializable {
 
     }
 
+    public Room GetOutsideRoom()
+    {
+        return rooms[0];
+    }
+
+    public void AddRoom(Room r)
+    {
+        rooms.Add(r);
+    }
+
+
+
+    public void DeleteRoom(Room r)
+    {
+        if (r == GetOutsideRoom())
+        {
+            Debug.LogError("Tried to delete the outside room");
+        }
+
+        //remove this room from our rooms list
+        rooms.Remove(r);
+
+        //All tiles that belonged to this room should be re-assigned to the outside
+        r.UnAssignAllTiles();
+        
+    }
+
     void SetupWorld(int _width, int _height)
     {
         jobQueue = new JobQueue();
@@ -57,6 +87,9 @@ public class World : IXmlSerializable {
         height = _height;
         tiles = new Tile[_width, _height];
 
+        rooms = new List<Room>();
+        rooms.Add(new Room());  //This is the outside space
+
         //Loop through the array tiles and add a tile to each element in the array
         for (int x = 0; x < _width; x++)
         {
@@ -64,6 +97,7 @@ public class World : IXmlSerializable {
             {
                 tiles[x, y] = new Tile(this, x, y); //A tile requires a world and the coordinates
                 tiles[x, y].RegisterTileTypeChangedCallback(OnTileChanged);
+                tiles[x, y].room = GetOutsideRoom();        //rooms 0 is always going to be outside, and that is our default room.
             }
         }
 
@@ -72,6 +106,7 @@ public class World : IXmlSerializable {
 
         characters = new List<Character>();
         furnitures = new List<Furniture>();
+
     }
 
     public void Update(float deltaTime)
@@ -105,8 +140,8 @@ public class World : IXmlSerializable {
     void CreateFurniturePrototypes()
     {
         furniturePrototypes = new Dictionary<string, Furniture>();
-        furniturePrototypes.Add("Wall", new Furniture("Wall", 0, 1, 1, true));
-        furniturePrototypes.Add("Door", new Furniture("Door", 1, 1, 1, false));
+        furniturePrototypes.Add("Wall", new Furniture("Wall", 0, 1, 1, true, true));
+        furniturePrototypes.Add("Door", new Furniture("Door", 1, 1, 1, false, true));
 
         furniturePrototypes["Door"].furnParameters["openness"] = 0;
         furniturePrototypes["Door"].furnParameters["is_opening"] = 0;
@@ -172,11 +207,27 @@ public class World : IXmlSerializable {
 
         furnitures.Add(furn);
 
+        //Do we need to recalculate our rooms?
+        if (furn.roomEnclosure)
+        {
+            //recalculate room floodfill method
+            Room.DoRoomFloodFill(furn);
+
+        }
+
         //Let everyone know that a furniture has been created, so that other functions subscribed to it can run
         if (cbFurnitureCreated != null)
         {
             cbFurnitureCreated(furn);
-            InvalidateTileGraph();
+
+            if (furn.movementCost != 1)
+            {
+                //since tiles return movement cost as their base cost multiplied by
+                //the furniture's movement cost, a furniture movement cost of exactly 1 doesn't impact our pathfinding system
+                //so we can ocassionally avoid invalidating pathfinding graphs
+                InvalidateTileGraph();          //reset the pathfinding system
+            }
+            
         }
 
         return furn;
