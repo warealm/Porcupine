@@ -11,8 +11,11 @@ using System.Xml.Serialization;
 public class Furniture : IXmlSerializable
 {
 
-    public Dictionary<string, float> furnParameters;
-    public Action<Furniture, float> updateActions;
+    private Dictionary<string, float> furnParameters;
+
+
+    //These actions are called every update
+    private Action<Furniture, float> updateActions;
 
     //This func has no parameters but enters an Enterability enum
     public Func<Furniture, Enterability> IsEnterable;
@@ -24,6 +27,9 @@ public class Furniture : IXmlSerializable
             updateActions(this, deltaTime);
         }
     } 
+
+
+
 
 
 
@@ -84,6 +90,8 @@ public class Furniture : IXmlSerializable
         
     }
 
+    //Make a copy fo the current furniture
+
     virtual public Furniture Clone()
     {
         return new Furniture(this);
@@ -100,7 +108,7 @@ public class Furniture : IXmlSerializable
         width = _width;
         height = _height;
         linksToNeighbour = _linksToNeighbour;
-        funcPositionValidation = _IsValidPosition;
+        funcPositionValidation = DEFAULT_IsValidPosition;
 
         furnParameters = new Dictionary<string, float>();
     }
@@ -184,7 +192,9 @@ public class Furniture : IXmlSerializable
         return funcPositionValidation(t);
     }
 
-    public bool _IsValidPosition(Tile t)
+    //this will be replaced by validation cehcks fed to use from
+    //LUA files that will be customizable for each pieve of furniture
+    private bool DEFAULT_IsValidPosition(Tile t)
     {
         //make sure tile is floor
 
@@ -201,9 +211,11 @@ public class Furniture : IXmlSerializable
         return true;
     }
 
+
+    //not used?
     public bool _IsValidPosition_Door(Tile t)
     {
-        if (_IsValidPosition(t) == false)
+        if (DEFAULT_IsValidPosition(t) == false)
         {
             return false;
         }
@@ -212,8 +224,45 @@ public class Furniture : IXmlSerializable
         return true;
     }
 
+    public float GetParameter(string key, float default_value = 0)
+    {
+        if (furnParameters.ContainsKey(key) == false)
+        {
+            return default_value;
+        }
 
+        return furnParameters[key];
+    }
 
+    public void SetParameter(string key, float value)
+    {
+        furnParameters[key] = value;
+    }
+
+    public void ChangeParameter(string key, float value)
+    {
+        if (furnParameters.ContainsKey(key) == false)
+        {
+            furnParameters[key] = value;
+        }
+        else
+        {
+            furnParameters[key] += value;
+        }
+
+    }
+
+    //Register a function that will be called every update
+
+    public void RegisterUpdateAction(Action<Furniture, float> a)
+    {
+        updateActions += a;
+    }
+
+    public void UnRegisterUpdateAction(Action<Furniture, float> a)
+    {
+        updateActions -= a;
+    }
 
     #region Saving and Loading
     public XmlSchema GetSchema()

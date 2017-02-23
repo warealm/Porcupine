@@ -20,7 +20,7 @@ public class Tile : IXmlSerializable {
     Action<Tile> cbTileChanged;
 
     //tile either either have a looseobject or an installed object on top of the base tile type
-    private Inventory inventory;
+    public Inventory inventory { get; protected set; }
 
     public Room room;
 
@@ -128,6 +128,50 @@ public class Tile : IXmlSerializable {
         return true;
 
     }
+
+    public bool PlaceInventory(Inventory inv)
+    {
+        if (inv == null)
+        {
+            inventory = null;
+            return true;
+
+        }
+
+        if (inventory != null)
+        {
+            //There's already inventory here, maybe we can combine stack?
+
+            if(inventory.inventoryType != inv.inventoryType)
+            {
+                Debug.LogError("Trying to assign an inventory to a tile that already has some different type");
+                return false;
+            }
+
+            int numToMove = inv.stackSize;
+            if(inventory.stackSize + numToMove > inventory.maxStackSize)
+            {
+                numToMove = inventory.maxStackSize - inventory.stackSize;
+            }
+
+            inventory.stackSize += numToMove;
+            inv.stackSize -= numToMove;
+
+            return true;
+        }
+
+        //at this point, we know that our current inventory is actually null
+        //we can't just do a direct assignment because the inventory manager needs to know
+        //that the old stack is now empty and has to be removed from the previous lists
+        inventory = inv.Clone();
+        inventory.tile = this;
+        inv.stackSize = 0;
+        return true;
+
+
+    }
+
+
 
     //Tells us if two tiles are adjacent
     public bool IsNeighbour(Tile tile, bool diagOkay = false)

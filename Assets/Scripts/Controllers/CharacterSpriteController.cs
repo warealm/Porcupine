@@ -48,7 +48,7 @@ public class CharacterSpriteController : MonoBehaviour {
         char_go.transform.position = new Vector3(character.X, character.Y, 0);
 
         //add a sprite renderer, but don't bother setting a sprite because all the tiles are empty atm
-        char_go.AddComponent<SpriteRenderer>().sprite = characterSprites["p1_front"];
+        char_go.AddComponent<SpriteRenderer>().sprite = characterSprites["builder"];
         char_go.GetComponent<SpriteRenderer>().sortingLayerName = "Character";
         //register our callback so that our GO gets updated whenever tiletype changes
         character.RegisterOnChangedCallBack(OnCharacterChanged);

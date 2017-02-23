@@ -78,6 +78,7 @@
     <Compile Include="Assets\Scripts\Controllers\BuildModeController.cs" />
     <Compile Include="Assets\Scripts\Controllers\CharacterSpriteController.cs" />
     <Compile Include="Assets\Scripts\Controllers\FurnitureSpriteController.cs" />
+    <Compile Include="Assets\Scripts\Controllers\InventorySpriteController.cs" />
     <Compile Include="Assets\Scripts\Controllers\JobSpriteController.cs" />
     <Compile Include="Assets\Scripts\Controllers\MouseController.cs" />
     <Compile Include="Assets\Scripts\Controllers\SoundController.cs" />
@@ -87,6 +88,7 @@
     <Compile Include="Assets\Scripts\Models\Furniture.cs" />
     <Compile Include="Assets\Scripts\Models\FurnitureActions.cs" />
     <Compile Include="Assets\Scripts\Models\Inventory.cs" />
+    <Compile Include="Assets\Scripts\Models\InventoryManager.cs" />
     <Compile Include="Assets\Scripts\Models\Job.cs" />
     <Compile Include="Assets\Scripts\Models\JobQueue.cs" />
     <Compile Include="Assets\Scripts\Models\Room.cs" />
@@ -96,10 +98,14 @@
     <Compile Include="Assets\Scripts\Pathfinding\Path_Edge.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\Path_Node.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\Path_Tilegraph.cs" />
+    <Compile Include="Assets\Scripts\UI\MouseOverFurnitureTypeText.cs" />
+    <Compile Include="Assets\Scripts\UI\MouseOverRoomIndexText.cs" />
+    <Compile Include="Assets\Scripts\UI\MouseOverTileTypeText.cs" />
     <Compile Include="Assets\Scripts\Utilities\Priority_Queue\Priority Queue\FastPriorityQueue.cs" />
     <Compile Include="Assets\Scripts\Utilities\Priority_Queue\Priority Queue\FastPriorityQueueNode.cs" />
     <Compile Include="Assets\Scripts\Utilities\Priority_Queue\Priority Queue\IPriorityQueue.cs" />
     <Compile Include="Assets\Scripts\Utilities\Priority_Queue\Priority Queue\SimplePriorityQueue.cs" />
+    <Compile Include="Assets\Scripts\Utilities\SetSortingLayer.cs" />
     <Compile Include="Assets\Scripts\Utilities\SimplePool.cs" />
     <Compile Include="Assets\UI\AutomaticVerticalSize.cs" />
   </ItemGroup>

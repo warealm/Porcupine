@@ -164,6 +164,13 @@ public class Room {
             }
         }
 
+        //Copy data from old room into new room
+        newRoom.atmosCO2 = oldRoom.atmosCO2;
+        newRoom.atmosN = oldRoom.atmosN;
+        newRoom.atmosO2 = oldRoom.atmosO2;
+
+
+
         //tell the world that a new room has been formed
         tile.world.AddRoom(newRoom);
         

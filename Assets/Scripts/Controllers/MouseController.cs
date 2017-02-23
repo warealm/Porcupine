@@ -31,6 +31,21 @@ public class MouseController : MonoBehaviour {
         lastFramePosition.z = 0;
 	}
 
+    //gets mouse position in world space
+
+    public Vector3 GetMousePosition()
+    {
+        return currFramePosition;
+    }
+
+    public Tile GetMouseOverTile()
+    {
+        //return WorldController.Instance.world.GetTileAt(Mathf.RoundToInt(currFramePosition.x),Mathf.RoundToInt(currFramePosition.y));
+        return WorldController.Instance.GetTileAtWorldCoord(currFramePosition);
+    }
+
+
+
     void UpdateDragging()
     {
         //If we are over a UI element, then bail out

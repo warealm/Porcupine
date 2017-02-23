@@ -12,7 +12,9 @@ public class World : IXmlSerializable {
     Tile[,] tiles;
 
     //A list of rooms in our world
-    List<Room> rooms;
+    public List<Room> rooms;
+    List<Inventory> inventories;
+    public InventoryManager inventoryManager;
 
     //A list of characters
     public List<Character> characters;
@@ -36,6 +38,7 @@ public class World : IXmlSerializable {
     Action<Furniture> cbFurnitureCreated;
     Action<Tile> cbTileChanged;
     Action<Character> cbCharacterCreated;
+    Action<Inventory> cbInventoryCreated;
 
     //TODO: most likely this will be replaced with a dedicated class for managing job queues
     public JobQueue jobQueue;
@@ -106,6 +109,7 @@ public class World : IXmlSerializable {
 
         characters = new List<Character>();
         furnitures = new List<Furniture>();
+        inventoryManager = new InventoryManager();
 
     }
 
@@ -143,9 +147,9 @@ public class World : IXmlSerializable {
         furniturePrototypes.Add("Wall", new Furniture("Wall", 0, 1, 1, true, true));
         furniturePrototypes.Add("Door", new Furniture("Door", 1, 1, 1, false, true));
 
-        furniturePrototypes["Door"].furnParameters["openness"] = 0;
-        furniturePrototypes["Door"].furnParameters["is_opening"] = 0;
-        furniturePrototypes["Door"].updateActions += FurnitureActions.Door_UpdateAction;
+        furniturePrototypes["Door"].SetParameter("openness", 0);
+        furniturePrototypes["Door"].SetParameter("is_opening", 0);
+        furniturePrototypes["Door"].RegisterUpdateAction(FurnitureActions.Door_UpdateAction);
         furniturePrototypes["Door"].IsEnterable = FurnitureActions.Door_IsEnterable;    //+=?
 
     }
@@ -252,6 +256,16 @@ public class World : IXmlSerializable {
     public void UnregisterCharacterCreated(Action<Character> callbackfunc)
     {
         cbCharacterCreated -= callbackfunc;
+    }
+
+    public void RegisterInventoryCreated(Action<Inventory> callbackfunc)
+    {
+        cbInventoryCreated += callbackfunc;
+    }
+
+    public void UnregisterInventoryCreated(Action<Inventory> callbackfunc)
+    {
+        cbInventoryCreated -= callbackfunc;
     }
 
     public void RegisterTileChanged(Action<Tile> callbackfunc)
@@ -408,6 +422,32 @@ public class World : IXmlSerializable {
             }
         }
 
+        Inventory inv = new Inventory();
+        inv.stackSize = 10;
+        Tile t = GetTileAt(Width / 2, Height / 2);
+        inventoryManager.PlaceInventory(t, inv);
+        if (cbInventoryCreated != null)
+        {
+            cbInventoryCreated(t.inventory);
+        }
+
+        inv = new Inventory();
+        inv.stackSize = 18;
+        t = GetTileAt(Width / 2 + 2, Height / 2);
+        inventoryManager.PlaceInventory(t, inv);
+        if (cbInventoryCreated != null)
+        {
+            cbInventoryCreated(t.inventory);
+        }
+
+        inv = new Inventory();
+        inv.stackSize = 45;
+        t = GetTileAt(Width / 2 + 1, Height / 2 + 2);
+        inventoryManager.PlaceInventory(t, inv);
+        if (cbInventoryCreated != null)
+        {
+            cbInventoryCreated(t.inventory);
+        }
 
     }
 
